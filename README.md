@@ -1,6 +1,4 @@
 Constants 通用常量<br/>
-使用unsafe与注解尝试实际属性的锁功能 <br/>
-/**
  * <font color='red'>jvm的大便!!!</font><br/>
  * 此工具先期适用于(++=)模式，暂不提供(+-=)模式<br/>
  * 系统初始化 有前导Byte<br/>

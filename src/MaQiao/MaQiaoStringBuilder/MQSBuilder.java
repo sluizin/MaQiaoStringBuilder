@@ -20,17 +20,17 @@ import MaQiao.MaQiaoStringBuilder.Consts.booleanType;
  * @version 1.1
  */
 public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence {
-	private static final Unsafe UNSAFE = Constants.UNSAFE;
+	private static transient final Unsafe UNSAFE = Constants.UNSAFE;
 	@SuppressWarnings("unused")
-	private transient volatile int locked = booleanType.False.index;;
+	private transient volatile boolean locked = booleanType.False.index;;
 	/**
 	 * 字符(char)数量
 	 */
-	private long size = 0L;
+	private transient long size = 0L;
 	/**
 	 * 字符(char)最大容量(默认 defaultLen 同StringBuilder、StringBuffer同样的初始大小(16个字符))
 	 */
-	private long maxSize = Consts.defaultLen;
+	private transient long maxSize = Consts.defaultLen;
 	/**
 	 * 字符(char)长度
 	 */
@@ -38,7 +38,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	/**
 	 * 本对象的锁对象 locked 的地址偏移量
 	 */
-	private static long lockedOffset = 0L;
+	private static transient long lockedOffset = 0L;
 	static {
 		try {
 			lockedOffset = UNSAFE.objectFieldOffset(MQSBuilder.class.getDeclaredField("locked"));/*得到锁对象的偏移量*/
@@ -49,8 +49,8 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	/**
 	 * 基本地址，用于转移，释放使用。因有前导字节
 	 */
-	private long mBasicAddress = 0L;
-	private long mAddress = (mBasicAddress = UNSAFE.allocateMemory(Consts.defHeadlen + maxSize >> 1)) + Consts.defHeadlen;
+	private transient long mBasicAddress = 0L;
+	private transient long mAddress = (mBasicAddress = UNSAFE.allocateMemory(Consts.defHeadlen + maxSize >> 1)) + Consts.defHeadlen;
 
 	public MQSBuilder() {
 		expandCapacity((int) maxSize);
@@ -101,7 +101,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	 * @param to booleanType
 	 */
 	private final void lockedOffsetCAS(final booleanType from, final booleanType to) {
-		while (!UNSAFE.compareAndSwapInt(this, lockedOffset, from.index, to.index)) {
+		while (!UNSAFE.compareAndSwapObject(this, lockedOffset, from.index, to.index)) {
 		}
 	}
 
@@ -150,6 +150,13 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		append(Integer.toString(i));
 	}
 
+	public final void append(final Short i) {
+		append(Short.toString(i));
+	}
+
+	public final void append(final short i) {
+		append(Short.toString(i));
+	}
 	public final void append(final long Offset, final long offLen) {
 		lock();
 		try {

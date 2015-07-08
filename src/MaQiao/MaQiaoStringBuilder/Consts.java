@@ -69,31 +69,31 @@ public final class Consts {
 
 	/**
 	 * boolean的状态:<br/>
-	 * False(0):假<br/>
-	 * True(1):真<br/>
+	 * False(false):假<br/>
+	 * True(true):真<br/>
 	 * @author Sunjian
 	 */
 	static enum booleanType {
 		/**
-		 * 假(0)
+		 * 假(false)
 		 */
-		False(0),
+		False(false),
 		/**
-		 * 真(1)
+		 * 真(true)
 		 */
-		True(1);
+		True(true);
 		/**
-		 * False:假(0)<br/>
-		 * True:真(1)<br/>
+		 * False:假(false)<br/>
+		 * True:真(true)<br/>
 		 */
-		int index;
+		boolean index;
 
 		// 构造方法
-		private booleanType(final int index) {
+		private booleanType(final boolean index) {
 			this.index = index;
 		}
 
-		public static final booleanType getBooleanType(final int index) {
+		public static final booleanType getBooleanType(final boolean index) {
 			for (booleanType c : booleanType.values())
 				if (c.index == index) return c;
 			return null;

@@ -22,7 +22,7 @@ import MaQiao.MaQiaoStringBuilder.Consts.booleanType;
 public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence {
 	private static transient final Unsafe UNSAFE = Constants.UNSAFE;
 	@SuppressWarnings("unused")
-	private transient volatile boolean locked = booleanType.False.index;;
+	private transient volatile int locked = booleanType.False.index;;
 	/**
 	 * 字符(char)数量
 	 */
@@ -101,7 +101,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	 * @param to booleanType
 	 */
 	private final void lockedOffsetCAS(final booleanType from, final booleanType to) {
-		while (!UNSAFE.compareAndSwapObject(this, lockedOffset, from.index, to.index)) {
+		while (!UNSAFE.compareAndSwapInt(this, lockedOffset, from.index, to.index)) {
 		}
 	}
 

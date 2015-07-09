@@ -1,10 +1,9 @@
 package MaQiao.MaQiaoStringBuilder;
 
 import java.io.Closeable;
-
-import sun.misc.Unsafe;
 import MaQiao.Constants.Constants;
 import MaQiao.MaQiaoStringBuilder.Consts.booleanType;
+
 /**
  * <font color='red'>jvm的大便!!!</font><br/>
  * 此工具先期适用于(++=)模式，暂不提供(+-=)模式<br/>
@@ -20,9 +19,8 @@ import MaQiao.MaQiaoStringBuilder.Consts.booleanType;
  * @version 1.1
  */
 public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence {
-	private static transient final Unsafe UNSAFE = Constants.UNSAFE;
 	@SuppressWarnings("unused")
-	private transient volatile int locked = booleanType.False.index;;
+	private transient int locked = booleanType.False.index;;
 	/**
 	 * 字符(char)数量
 	 */
@@ -41,7 +39,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	private static transient long lockedOffset = 0L;
 	static {
 		try {
-			lockedOffset = UNSAFE.objectFieldOffset(MQSBuilder.class.getDeclaredField("locked"));/*得到锁对象的偏移量*/
+			lockedOffset = Constants.UNSAFE.objectFieldOffset(MQSBuilder.class.getDeclaredField("locked"));/*得到锁对象的偏移量*/
 		} catch (NoSuchFieldException e) {
 			e.printStackTrace();
 		}
@@ -50,7 +48,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	 * 基本地址，用于转移，释放使用。因有前导字节
 	 */
 	private transient long mBasicAddress = 0L;
-	private transient long mAddress = (mBasicAddress = UNSAFE.allocateMemory(Consts.defHeadlen + maxSize >> 1)) + Consts.defHeadlen;
+	private transient long mAddress = (mBasicAddress = Constants.UNSAFE.allocateMemory(Consts.defHeadlen + maxSize >> 1)) + Consts.defHeadlen;
 
 	public MQSBuilder() {
 		expandCapacity((int) maxSize);
@@ -101,7 +99,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	 * @param to booleanType
 	 */
 	private final void lockedOffsetCAS(final booleanType from, final booleanType to) {
-		while (!UNSAFE.compareAndSwapInt(this, lockedOffset, from.index, to.index)) {
+		while (!Constants.UNSAFE.compareAndSwapInt(this, lockedOffset, from.index, to.index)) {
 		}
 	}
 
@@ -109,12 +107,12 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	 * 添加null
 	 */
 	public final void appendnull() {
-		append(Consts.nullArray);
-		//UNSAFE.putChar(mAddress + ((size++) << 1), 'n');
-		//UNSAFE.putChar(mAddress + ((size++) << 1), 'u');
-		//UNSAFE.putChar(mAddress + ((size++) << 1), 'l');
-		//UNSAFE.putChar(mAddress + ((size++) << 1), 'l');
-		//UNSAFE.copyMemory(nullArray, Constants.ArrayAddress, null, mAddress + size * charLength, 4 * charLength);
+		appendForced(Consts.nullArray, 4);
+		//Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'n');
+		//Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'u');
+		//Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'l');
+		//Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'l');
+		//Constants.UNSAFE.copyMemory(nullArray, Constants.ArrayAddress, null, mAddress + size * charLength, 4 * charLength);
 		//size += 4;
 	}
 
@@ -157,13 +155,14 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	public final void append(final short i) {
 		append(Short.toString(i));
 	}
+
 	public final void append(final long Offset, final long offLen) {
 		lock();
 		try {
 			//if (offLen <= 0L || (offLen % 2) != 0 || (offLen != (offLen >> 1 << 1))) return;
 			if (offLen <= 0L || (offLen & 1) != 0) return;
 			if ((maxSize - size) < (offLen >> 1)) expandCapacity(offLen);
-			UNSAFE.copyMemory(null, Offset, null, mAddress + (size << 1), offLen);
+			Constants.UNSAFE.copyMemory(null, Offset, null, mAddress + (size << 1), offLen);
 			size += (offLen >> 1);
 		} finally {
 			unLock();
@@ -175,7 +174,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		try {
 			if (offLen <= 0L || (offLen & 1) != 0) return;
 			if ((maxSize - size) < (offLen >> 1)) expandCapacity(offLen);
-			UNSAFE.copyMemory(obj, Offset, null, mAddress + (size << 1), offLen);
+			Constants.UNSAFE.copyMemory(obj, Offset, null, mAddress + (size << 1), offLen);
 			size += (offLen >> 1);
 		} finally {
 			unLock();
@@ -186,7 +185,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		lock();
 		try {
 			if ((maxSize - size) < len) expandCapacity(len);
-			UNSAFE.copyMemory(null, Offset, null, mAddress + (size << 1), len << 1);
+			Constants.UNSAFE.copyMemory(null, Offset, null, mAddress + (size << 1), len << 1);
 			size += len;
 		} finally {
 			unLock();
@@ -197,7 +196,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		lock();
 		try {
 			if ((maxSize - size) < len) expandCapacity(len);
-			UNSAFE.copyMemory(obj, Offset, null, mAddress + (size << 1), len << 1);
+			Constants.UNSAFE.copyMemory(obj, Offset, null, mAddress + (size << 1), len << 1);
 			size += len;
 		} finally {
 			unLock();
@@ -213,28 +212,28 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	}
 
 	public final void append(final boolean b) {
-/*		lock();
-		try {
-			扩充内存
-			if (b) {
-				if ((maxSize - size) < 4) expandCapacity((int) (4 + (size >> 1)));//原长度1.5倍增长
-				UNSAFE.putChar(mAddress + ((size++) << 1), 't');
-				UNSAFE.putChar(mAddress + ((size++) << 1), 'r');
-				UNSAFE.putChar(mAddress + ((size++) << 1), 'u');
-				UNSAFE.putChar(mAddress + ((size++) << 1), 'e');
-			}else{
-				if ((maxSize - size) < 5) expandCapacity((int) (5 + (size >> 1)));//原长度1.5倍增长
-				UNSAFE.putChar(mAddress + ((size++) << 1), 'f');
-				UNSAFE.putChar(mAddress + ((size++) << 1), 'a');
-				UNSAFE.putChar(mAddress + ((size++) << 1), 'l');
-				UNSAFE.putChar(mAddress + ((size++) << 1), 's');
-				UNSAFE.putChar(mAddress + ((size++) << 1), 'e');
-			}
-		} finally {
-			unLock();
-		}*/		
+		/*		lock();
+				try {
+					扩充内存
+					if (b) {
+						if ((maxSize - size) < 4) expandCapacity((int) (4 + (size >> 1)));//原长度1.5倍增长
+						Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 't');
+						Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'r');
+						Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'u');
+						Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'e');
+					}else{
+						if ((maxSize - size) < 5) expandCapacity((int) (5 + (size >> 1)));//原长度1.5倍增长
+						Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'f');
+						Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'a');
+						Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'l');
+						Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 's');
+						Constants.UNSAFE.putChar(mAddress + ((size++) << 1), 'e');
+					}
+				} finally {
+					unLock();
+				}*/
 		if (b) {
-			append(Consts.trueArray);/*UNSAFE.putChar(mAddress + ((size++) * charLength), 'f');*/
+			append(Consts.trueArray);/*Constants.UNSAFE.putChar(mAddress + ((size++) * charLength), 'f');*/
 		} else {
 			append(Consts.falseArray);
 		}
@@ -286,7 +285,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 			/*扩充内存*/
 			if ((maxSize - size) < len) expandCapacity((int) (len + size));//原长度双倍增长
 			/*拷贝数据*/
-			UNSAFE.copyMemory(UNSAFE.getObject(Str, Consts.StringArrayOffset), Consts.ArrayAddress, null, mAddress + (size << 1), len << 1);
+			Constants.UNSAFE.copyMemory(Constants.UNSAFE.getObject(Str, Consts.StringArrayOffset), Consts.ArrayAddress, null, mAddress + (size << 1), len << 1);
 			size += len;
 		} finally {
 			unLock();
@@ -305,14 +304,44 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		try {
 			/*扩充内存*/
 			if ((maxSize - size) < len) expandCapacity((int) (len + (size >> 1)));//原长度1.5倍增长
-			/* {
-				if (len < (maxSize >> 1)) {
-					expandCapacity();
-				} else {
-					expandCapacity(len << 1);
-				}
-			}*/
-			UNSAFE.copyMemory(Array, Consts.ArrayAddress, null, mAddress + (size << 1), len << 1);
+			Constants.UNSAFE.copyMemory(Array, Consts.ArrayAddress, null, mAddress + (size << 1), len << 1);
+			size += len;
+		} finally {
+			unLock();
+		}
+	}
+
+	/**
+	 * 添加char[]数组，指定长度(判断长度)<br/>
+	 * <font color='red'>含有独占锁</font><br/>
+	 * @param Array char[]
+	 * @param len int
+	 */
+	public final void append(final char[] Array, final int len) {
+		if (len <= 0 || len > Array.length) return;
+		lock();
+		try {
+			/*扩充内存*/
+			if ((maxSize - size) < len) expandCapacity((int) (len + (size >> 1)));//原长度1.5倍增长
+			Constants.UNSAFE.copyMemory(Array, Consts.ArrayAddress, null, mAddress + (size << 1), len << 1);
+			size += len;
+		} finally {
+			unLock();
+		}
+	}
+
+	/**
+	 * 添加char[]数组，强制指定长度(不判断长度)<br/>
+	 * <font color='red'>含有独占锁</font><br/>
+	 * @param Array char[]
+	 * @param len int
+	 */
+	public final void appendForced(final char[] Array, final int len) {
+		lock();
+		try {
+			/*扩充内存*/
+			if ((maxSize - size) < len) expandCapacity((int) (len + (size >> 1)));//原长度1.5倍增长
+			Constants.UNSAFE.copyMemory(Array, Consts.ArrayAddress, null, mAddress + (size << 1), len << 1);
 			size += len;
 		} finally {
 			unLock();
@@ -328,7 +357,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		lock();
 		try {
 			if (maxSize <= size) expandCapacity();//(maxSize << 1);
-			UNSAFE.putChar(mAddress + ((size++) << 1), c);
+			Constants.UNSAFE.putChar(mAddress + ((size++) << 1), c);
 		} finally {
 			unLock();
 		}
@@ -356,7 +385,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		try {
 			if ((len + size) > maxSize) expandCapacity((int) ((len + size) - maxSize));
 			/*扩充内存*/
-			UNSAFE.copyMemory(null, MQ.mAddress, null, mAddress + (size << 1), len << 1);
+			Constants.UNSAFE.copyMemory(null, MQ.mAddress, null, mAddress + (size << 1), len << 1);
 			size += len;
 			if (closed) MQ.free();
 		} finally {
@@ -402,7 +431,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		try {
 			int len = (size > Consts.charArrayMaxLen) ? Consts.charArrayMaxLen : (int) size;
 			final char[] c = new char[len];
-			UNSAFE.copyMemory(null, mAddress, c, Consts.ArrayAddress, len << 1);
+			Constants.UNSAFE.copyMemory(null, mAddress, c, Consts.ArrayAddress, len << 1);
 			return c;
 		} finally {
 			unLock();
@@ -423,7 +452,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		try {
 			long len = (startIndex + Size) > size ? size - startIndex : Size;
 			final char[] c = new char[(int) len];
-			UNSAFE.copyMemory(null, mAddress + (startIndex << 1), c, Consts.ArrayAddress, len << 1);
+			Constants.UNSAFE.copyMemory(null, mAddress + (startIndex << 1), c, Consts.ArrayAddress, len << 1);
 			return c;
 		} finally {
 			unLock();
@@ -439,8 +468,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 			final char[][] c = { getArray() /*含有独占锁*/};
 			return c;
 		}
-		int Multiple = (int) ((size % Consts.charArrayMaxLen == 0) ? size / Consts.charArrayMaxLen : (size - size % Consts.charArrayMaxLen)
-				/ Consts.charArrayMaxLen + 1);
+		int Multiple = (int) ((size % Consts.charArrayMaxLen == 0) ? size / Consts.charArrayMaxLen : (size - size % Consts.charArrayMaxLen) / Consts.charArrayMaxLen + 1);
 		final char[][] Array = new char[Multiple][];
 		//============================================================
 		for (int i = 0; i < Multiple; i++) {
@@ -467,7 +495,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		lock();
 		try {
 			//throw new StringIndexOutOfBoundsException((int)index);
-			final char c = UNSAFE.getChar(mAddress + (index << 1));
+			final char c = Constants.UNSAFE.getChar(mAddress + (index << 1));
 			return c;
 		} finally {
 			unLock();
@@ -490,7 +518,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		//throw new StringIndexOutOfBoundsException((int)i);
 		lock();
 		try {
-			final char c = UNSAFE.getChar(mAddress + (i << 1));
+			final char c = Constants.UNSAFE.getChar(mAddress + (i << 1));
 			return c;
 		} finally {
 			unLock();
@@ -522,8 +550,8 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	public final void clear() {
 		lock();
 		try {
-			UNSAFE.freeMemory(mBasicAddress);
-			mAddress = (mBasicAddress = UNSAFE.allocateMemory(Consts.defHeadlen + (Consts.defaultLen << 1))) + Consts.defHeadlen;
+			Constants.UNSAFE.freeMemory(mBasicAddress);
+			mAddress = (mBasicAddress = Constants.UNSAFE.allocateMemory(Consts.defHeadlen + (Consts.defaultLen << 1))) + Consts.defHeadlen;
 			size = 0L;
 			maxSize = Consts.defaultLen;
 		} finally {
@@ -557,7 +585,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	 */
 	private final void expandCapacity(final int len) {
 		if (len <= 0) return;
-		mAddress = (mBasicAddress = UNSAFE.reallocateMemory(mBasicAddress, ((maxSize + len) << 1) + Consts.defHeadlen)) + Consts.defHeadlen;
+		mAddress = (mBasicAddress = Constants.UNSAFE.reallocateMemory(mBasicAddress, ((maxSize + len) << 1) + Consts.defHeadlen)) + Consts.defHeadlen;
 		maxSize += len;
 	}
 
@@ -570,7 +598,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 	 */
 	public final void free() {
 		lock();
-		UNSAFE.freeMemory(mBasicAddress);
+		Constants.UNSAFE.freeMemory(mBasicAddress);
 		unLock();
 		//System.out.println("free()...........OK!!!");
 	}

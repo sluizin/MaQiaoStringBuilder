@@ -7,11 +7,26 @@ public final class Consts {
 	/** UNSAFE 默认初始Char字符长度 同StringBuilder、StringBuffer同样的初始大小(16个字符)*/
 	static final long defaultLen = 16L;
 	static final int charArrayMaxLen = Integer.MAX_VALUE;/*输出到二维字符数组时，单行字符数组的最大长度*/
+	/**
+	 * null
+	 */
 	static final char[] nullArray = { 'n', 'u', 'l', 'l' };
+	/**
+	 * true
+	 */
 	static final char[] trueArray = { 't', 'r', 'u', 'e' };
+	/**
+	 * false
+	 */
 	static final char[] falseArray = { 'f', 'a', 'l', 's', 'e' };
-	static final char[] ArrayNull = new char[0]; /* 空数组，用于返回空值 */
-	static final char[][] Array2Null = new char[0][0]; /* 空数组，用于返回空值 */
+	/**
+	 * new char[0] 空数组，用于返回空值
+	 */
+	static final char[] ArrayNull = new char[0]; 
+	/**
+	 * new char[0][0] 空数组，用于返回空值
+	 */
+	static final char[][] Array2Null = new char[0][0];
 	/**
 	 * char[]数组地址偏移量
 	 */

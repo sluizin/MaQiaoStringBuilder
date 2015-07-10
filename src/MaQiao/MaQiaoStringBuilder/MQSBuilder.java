@@ -205,9 +205,9 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 
 	public final void append(final Boolean b) {
 		if (b) {
-			append(Consts.trueArray);
+			appendForced(Consts.trueArray, 4);
 		} else {
-			append(Consts.falseArray);
+			appendForced(Consts.falseArray, 5);
 		}
 	}
 
@@ -233,15 +233,15 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 					unLock();
 				}*/
 		if (b) {
-			append(Consts.trueArray);/*Constants.UNSAFE.putChar(mAddress + ((size++) * charLength), 'f');*/
+			appendForced(Consts.trueArray, 4);/*Constants.UNSAFE.putChar(mAddress + ((size++) * charLength), 'f');*/
 		} else {
-			append(Consts.falseArray);
+			appendForced(Consts.falseArray, 5);
 		}
 	}
 
 	public final void append(final Object obj) {
 		if (obj == null) {
-			append("null");
+			appendnull();
 			return;
 		}
 		if (obj instanceof String) {
@@ -429,7 +429,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		if (size == 0L) return null;
 		lock();
 		try {
-			int len = (size > Consts.charArrayMaxLen) ? Consts.charArrayMaxLen : (int) size;
+			final int len = (size > Consts.charArrayMaxLen) ? Consts.charArrayMaxLen : (int) size;
 			final char[] c = new char[len];
 			Constants.UNSAFE.copyMemory(null, mAddress, c, Consts.ArrayAddress, len << 1);
 			return c;
@@ -450,7 +450,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		//throw new StringIndexOutOfBoundsException((int)(startIndex+Size));
 		lock();
 		try {
-			long len = (startIndex + Size) > size ? size - startIndex : Size;
+			final long len = (startIndex + Size) > size ? size - startIndex : Size;
 			final char[] c = new char[(int) len];
 			Constants.UNSAFE.copyMemory(null, mAddress + (startIndex << 1), c, Consts.ArrayAddress, len << 1);
 			return c;
@@ -468,7 +468,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 			final char[][] c = { getArray() /*含有独占锁*/};
 			return c;
 		}
-		int Multiple = (int) ((size % Consts.charArrayMaxLen == 0) ? size / Consts.charArrayMaxLen : (size - size % Consts.charArrayMaxLen) / Consts.charArrayMaxLen + 1);
+		final int Multiple = (int) ((size % Consts.charArrayMaxLen == 0) ? size / Consts.charArrayMaxLen : (size - size % Consts.charArrayMaxLen) / Consts.charArrayMaxLen + 1);
 		final char[][] Array = new char[Multiple][];
 		//============================================================
 		for (int i = 0; i < Multiple; i++) {
@@ -518,8 +518,7 @@ public final class MQSBuilder implements AutoCloseable, Closeable, CharSequence 
 		//throw new StringIndexOutOfBoundsException((int)i);
 		lock();
 		try {
-			final char c = Constants.UNSAFE.getChar(mAddress + (i << 1));
-			return c;
+			return Constants.UNSAFE.getChar(mAddress + (i << 1));
 		} finally {
 			unLock();
 		}
